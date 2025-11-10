@@ -210,6 +210,32 @@ npm run watch
 npm run dev
 ```
 
+### Testing
+
+The project includes comprehensive tests for all 50+ API endpoints:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+See [TEST_GUIDE.md](TEST_GUIDE.md) for detailed testing documentation.
+
+**Test Coverage:**
+- ✅ 12 Flight API endpoints
+- ✅ 6 Hotel API endpoints
+- ✅ 6 Activity & POI endpoints
+- ✅ 3 Transfer endpoints
+- ✅ 7 Reference Data endpoints
+- ✅ 8 Analytics & Prediction endpoints
+- ✅ Integration tests for complete booking flows
+
 ## API Documentation
 
 For detailed API documentation, visit:

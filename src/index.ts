@@ -18,17 +18,25 @@ function getAmadeusClient(): Amadeus {
     const clientSecret = process.env.AMADEUS_CLIENT_SECRET;
     const hostname = process.env.AMADEUS_HOSTNAME || "production";
 
+    console.error(`[MCP Server] Initializing Amadeus client with hostname: ${hostname}`);
+
     if (!clientId || !clientSecret) {
       throw new Error(
         "AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET environment variables are required"
       );
     }
 
-    amadeusClient = new Amadeus({
-      clientId,
-      clientSecret,
-      hostname,
-    });
+    try {
+      amadeusClient = new Amadeus({
+        clientId,
+        clientSecret,
+        hostname,
+      });
+      console.error("[MCP Server] Amadeus client initialized successfully");
+    } catch (error: any) {
+      console.error("[MCP Server] Failed to initialize Amadeus client:", error.message);
+      throw error;
+    }
   }
 
   return amadeusClient;
@@ -912,14 +920,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
+  console.error(`[MCP Server] Tool called: ${name}`);
+
   try {
     const amadeus = getAmadeusClient();
     let response;
     const parameters = args || {};
 
+    console.error(`[MCP Server] Executing ${name} with parameters:`, JSON.stringify(parameters).substring(0, 100));
+
     switch (name) {
       // Flight Shopping
       case "flight_offers_search":
+        // Set default value for adults if not provided
+        if (!parameters.adults) {
+          parameters.adults = 1;
+        }
         response = await amadeus.shopping.flightOffersSearch.get(parameters);
         break;
 
@@ -1131,6 +1147,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Unknown tool: ${name}`);
     }
 
+    console.error(`[MCP Server] ✓ ${name} completed successfully`);
     return {
       content: [
         {
@@ -1140,11 +1157,40 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       ],
     };
   } catch (error: any) {
+    console.error(`[MCP Server] ✗ Error in ${name}:`, error);
+    console.error(`[MCP Server] Error type:`, typeof error);
+    console.error(`[MCP Server] Error message:`, error?.message);
+    console.error(`[MCP Server] Error description:`, error?.description);
+    console.error(`[MCP Server] Full error object:`, JSON.stringify(error, null, 2));
+
+    // Handle Amadeus API errors specifically
+    let errorMessage = error?.message || "API Error";
+    let errorDetails = "";
+
+    if (error?.description && Array.isArray(error.description)) {
+      // Amadeus returns errors as an array
+      const firstError = error.description[0];
+      errorMessage = `${firstError?.title || "API Error"}: ${firstError?.detail || "Unknown error"}`;
+      errorDetails = JSON.stringify(error.description, null, 2);
+
+      // Add helpful context for common errors
+      if (firstError?.code === 1797 || firstError?.status === 404) {
+        errorMessage += "\n\nNote: This may be because the test API has limited data. Try:\n" +
+          "- A different origin/destination (e.g., NYC, LON, PAR)\n" +
+          "- A different date range\n" +
+          "- Using production API credentials if available";
+      }
+    } else {
+      errorDetails = JSON.stringify(error?.description || error?.response?.data || error, null, 2);
+    }
+
+    const errorStack = error?.stack || "";
+
     return {
       content: [
         {
           type: "text",
-          text: `Error: ${error.message}\n${error.description || ""}`,
+          text: `${errorMessage}\n\nDetails:\n${errorDetails}\n\n${errorStack ? `Stack: ${errorStack}` : ""}`,
         },
       ],
       isError: true,
@@ -1154,12 +1200,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 // Start the server
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Amadeus MCP Server running on stdio");
+  try {
+    console.error("[MCP Server] Starting Amadeus MCP Server...");
+
+    // Validate environment variables early
+    const clientId = process.env.AMADEUS_CLIENT_ID;
+    const clientSecret = process.env.AMADEUS_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+      console.error("[MCP Server] ERROR: Missing AMADEUS_CLIENT_ID or AMADEUS_CLIENT_SECRET");
+      console.error("[MCP Server] Please set these environment variables");
+      process.exit(1);
+    }
+
+    console.error("[MCP Server] Environment variables loaded");
+    console.error(`[MCP Server] Using hostname: ${process.env.AMADEUS_HOSTNAME || "production"}`);
+
+    const transport = new StdioServerTransport();
+    console.error("[MCP Server] Transport created");
+
+    await server.connect(transport);
+    console.error("[MCP Server] ✓ Amadeus MCP Server running on stdio");
+    console.error("[MCP Server] ✓ 50+ travel tools available");
+  } catch (error) {
+    console.error("[MCP Server] Fatal error during startup:", error);
+    throw error;
+  }
 }
 
 main().catch((error) => {
-  console.error("Fatal error in main():", error);
+  console.error("[MCP Server] Fatal error in main():", error);
+  console.error("[MCP Server] Stack:", error.stack);
   process.exit(1);
 });
