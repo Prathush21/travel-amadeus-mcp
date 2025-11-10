@@ -1,0 +1,61 @@
+{
+  "name": "travel-amadeus-mcp",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for Amadeus Travel APIs - provides 50+ tools for flight search, hotel booking, activities, and travel intelligence",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "travel-amadeus-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "start": "node dist/index.js",
+    "dev": "tsc && node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "amadeus",
+    "travel",
+    "flights",
+    "hotels",
+    "model-context-protocol",
+    "ai",
+    "claude",
+    "llm",
+    "booking",
+    "activities",
+    "tourism",
+    "travel-api",
+    "flight-search",
+    "hotel-booking"
+  ],
+  "author": "Prathushan",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prathushan/travel-amadeus-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/prathushan/travel-amadeus-mcp/issues"
+  },
+  "homepage": "https://github.com/prathushan/travel-amadeus-mcp#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "amadeus": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "typescript": "^5.7.2"
+  }
+}
